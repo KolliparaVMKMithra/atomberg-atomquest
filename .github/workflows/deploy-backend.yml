@@ -26,7 +26,9 @@ jobs:
       - name: Create deployment package
         working-directory: ./backend
         run: |
-          zip -r ../backend.zip . -x "__pycache__/*" "*.pyc" ".env"
+          find . -type d -name "__pycache__" -exec rm -rf {} +
+          find . -type f -name "*.pyc" -delete
+          zip -r ../backend.zip . -x ".env"
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
