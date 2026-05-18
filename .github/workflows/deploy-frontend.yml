@@ -19,7 +19,7 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          azure_static_web_apps_api_token: "4d8c03f6297463dbffcf0a52b439195fa6affaf68989b4e98871b322e5c8277007-8e8bfc20-c03f-45ab-8f30-5ef3eedc2a8d0000026064a38500"
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "frontend"
