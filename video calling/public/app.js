@@ -30,6 +30,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let audioContext = null;
 let audioDestNode = null;
+let webrtcConfig = null;
 
 // Helper to parse dates in UTC reliably across timezones
 function parseUTCDate(dateStr) {
@@ -44,18 +45,31 @@ function parseUTCDate(dateStr) {
 // ----------------------------------------------------
 // WebRTC Configuration - FORCED TO USE RELAY ONLY
 // ----------------------------------------------------
+async function fetchWebRTCConfig() {
+  try {
+    const res = await fetch('/api/ice-config');
+    if (res.ok) {
+      webrtcConfig = await res.json();
+      console.log("WebRTC Configuration loaded successfully:", webrtcConfig);
+    }
+  } catch (err) {
+    console.error("Failed to fetch WebRTC ICE config from server, using local fallback:", err);
+  }
+}
+
 function getPeerConnectionConfig() {
+  if (webrtcConfig) {
+    return webrtcConfig;
+  }
   const host = window.location.hostname;
   return {
     iceServers: [
       {
-        // Force routing through our built-in TURN server
         urls: `turn:${host}:3478`,
         username: 'atomquest',
         credential: 'supersecretpassword'
       }
     ],
-    // 'relay' blocks direct P2P connections, forcing media through our server
     iceTransportPolicy: 'relay'
   };
 }
@@ -64,6 +78,9 @@ function getPeerConnectionConfig() {
 // Page Initializers
 // ----------------------------------------------------
 window.onload = async () => {
+  // Fetch dynamic WebRTC ICE configuration
+  await fetchWebRTCConfig();
+
   // Check if we are on the customer page (join.html) or agent page (index.html)
   const isCustomerPage = window.location.pathname.includes('join.html');
   userRole = isCustomerPage ? 'customer' : 'agent';

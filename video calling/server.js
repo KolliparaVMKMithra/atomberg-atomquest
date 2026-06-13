@@ -26,21 +26,30 @@ function getLocalIpAddress() {
 const localIp = getLocalIpAddress();
 console.log(`Detected Server LAN IP: ${localIp}`);
 
-// Generate self-signed SSL Certificate for Secure Context (WebRTC requirements over LAN)
-const attrs = [
-  { name: 'commonName', value: localIp },
-  { name: 'organizationName', value: 'Atomberg AtomQuest' }
-];
-const pems = selfsigned.generate(attrs, { days: 365, keySize: 2048 });
-const sslOptions = {
-  key: pems.private,
-  cert: pems.cert
-};
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 
 const app = express();
-const server = https.createServer(sslOptions, app);
+let server;
 
-// Prevent default Node.js HTTPS server socket timeouts (which cause 2-minute disconnect drops)
+if (isProduction) {
+  // Production / Reverse Proxy environment (Render handles SSL termination)
+  const http = require('http');
+  server = http.createServer(app);
+} else {
+  // Local development environment (Needs local HTTPS for Secure Context over LAN)
+  const attrs = [
+    { name: 'commonName', value: localIp },
+    { name: 'organizationName', value: 'Atomberg AtomQuest' }
+  ];
+  const pems = selfsigned.generate(attrs, { days: 365, keySize: 2048 });
+  const sslOptions = {
+    key: pems.private,
+    cert: pems.cert
+  };
+  server = https.createServer(sslOptions, app);
+}
+
+// Prevent default Node.js server socket timeouts (which cause 2-minute disconnect drops)
 server.timeout = 0; 
 server.keepAliveTimeout = 60000; 
 
@@ -124,10 +133,13 @@ app.post('/api/sessions', async (req, res) => {
     await db.createSession(sessionId, agentId, customerToken);
     await db.logEvent(sessionId, 'info', `Session created by agent ${agentId}`);
 
+    const requestHost = req.headers.host || `${localIp}:${PORT}`;
+    const protocol = req.headers['x-forwarded-proto'] || (isProduction ? 'https' : 'https');
+
     res.status(201).json({
       sessionId,
       customerToken,
-      inviteLink: `https://${localIp}:${PORT}/join.html?token=${customerToken}`
+      inviteLink: `${protocol}://${requestHost}/join.html?token=${customerToken}`
     });
   } catch (err) {
     console.error('Error creating session:', err);
@@ -154,6 +166,44 @@ app.get('/api/verify-token/:token', async (req, res) => {
   } catch (err) {
     console.error('Error verifying token:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to return WebRTC ICE configuration dynamically
+app.get('/api/ice-config', (req, res) => {
+  if (process.env.TURN_URIS) {
+    return res.json({
+      iceServers: [
+        {
+          urls: process.env.TURN_URIS.split(','),
+          username: process.env.TURN_USERNAME || '',
+          credential: process.env.TURN_PASSWORD || ''
+        }
+      ],
+      iceTransportPolicy: 'relay'
+    });
+  }
+  
+  if (isProduction) {
+    console.warn("Production environment detected without TURN_URIS env variable. Falling back to public STUN with policy 'all'.");
+    return res.json({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ],
+      iceTransportPolicy: 'all'
+    });
+  } else {
+    return res.json({
+      iceServers: [
+        {
+          urls: `turn:${localIp}:${TURN_PORT}`,
+          username: 'atomquest',
+          credential: 'supersecretpassword'
+        }
+      ],
+      iceTransportPolicy: 'relay'
+    });
   }
 });
 
@@ -621,9 +671,13 @@ function broadcastAdminUpdate() {
 // 4. Start Server & DB
 // ----------------------------------------------------
 db.initDatabase().then(() => {
-  server.listen(PORT, () => {
-    console.log(`Web server running on https://${localIp}:${PORT}`);
-    console.log(`Fallback local URL: https://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    if (isProduction) {
+      console.log(`Web server running in production HTTP mode on port ${PORT}`);
+    } else {
+      console.log(`Web server running on https://${localIp}:${PORT}`);
+      console.log(`Fallback local URL: https://localhost:${PORT}`);
+    }
   });
 }).catch(err => {
   console.error('Failed to initialize database, shutting down:', err);
