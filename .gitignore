@@ -5,24 +5,16 @@ node_modules/
 *.sqlite
 *.sqlite3
 *.db
-backend/atomquest.db
 
 # User uploads & recordings
-video calling/public/uploads/*
-!video calling/public/uploads/.gitkeep
-video calling/public/recordings/*
-!video calling/public/recordings/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
+public/recordings/*
+!public/recordings/.gitkeep
 
 # Environments & sensitive files
 .env
 .env.local
-backend/.env
-
-# Python compilation files
-__pycache__/
-*.pyc
-backend/__pycache__/
-backend/routers/__pycache__/
 
 # OS files
 .DS_Store
