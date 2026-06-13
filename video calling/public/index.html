@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AtomQuest Support - Agent Portal</title>
+  <meta name="description" content="Secure, real-time video support portal for Atomberg agents.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- Connection Drop Warning Banner -->
+  <div id="notification-banner" class="notification-banner">
+    <i class="fa-solid fa-triangle-exclamation"></i> Connection lost. Reconnecting to call session...
+  </div>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-dot"></div>
+      <div class="logo-text">ATOMQUEST</div>
+      <span style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 800; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); letter-spacing: 0.05em;">AGENT PORTAL</span>
+    </div>
+    <div id="header-user-info" style="display: none; align-items: center; gap: 16px;">
+      <span id="header-username" style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Agent</span>
+      <button onclick="logout()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12.5px; border-radius: var(--radius-sm);">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-screen" class="role-grid">
+      <div class="role-panel glass-panel" style="max-width: 440px; width: 100%; margin: 40px auto; padding: 40px; position: relative;">
+        <!-- Glowing accent top border -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--agent-gradient);"></div>
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); margin-bottom: 16px;">
+            <i class="fa-solid fa-shield-halved" style="font-size: 24px; color: var(--accent-color);"></i>
+          </div>
+          <h2 style="font-size: 24px; margin-bottom: 8px;">Agent Authentication</h2>
+          <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5;">Log in to access your video calling and session management dashboard.</p>
+        </div>
+        
+        <div id="login-error" style="color: var(--error); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15); padding: 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: none; margin-bottom: 20px; text-align: center;"></div>
+        
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div class="input-group" style="margin-bottom: 18px;">
+            <label for="username">Username</label>
+            <input type="text" id="username" required placeholder="Enter agent username (e.g. agent)" autocomplete="username">
+          </div>
+          <div class="input-group" style="margin-bottom: 24px;">
+            <label for="password">Password</label>
+            <input type="password" id="password" required placeholder="Enter password (e.g. password)" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); font-size: 14.5px;">
+            <i class="fa-solid fa-lock"></i> Secure Log In
+          </button>
+        </form>
+        
+        <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted);">
+          <span><i class="fa-solid fa-lock"></i> E2EE Encryption</span>
+          <span><i class="fa-solid fa-database"></i> SQLite Active</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. AGENT DASHBOARD -->
+    <div id="agent-dashboard" class="dashboard-layout" style="display: none;">
+      <!-- Main Actions & Session History -->
+      <div class="glass-panel dashboard-panel">
+        <div class="panel-header">
+          <div>
+            <h2 style="font-size: 22px; margin-bottom: 4px;">Support Session Management</h2>
+            <p style="font-size: 13.5px; color: var(--text-secondary);">Create support tokens and manage active client interactions.</p>
+          </div>
+          <button onclick="createNewSession()" class="btn btn-primary" style="border-radius: var(--radius-sm);">
+            <i class="fa-solid fa-plus"></i> New Support Call
+          </button>
+        </div>
+
+        <!-- Session Invite Link Generation Card -->
+        <div id="session-creation-card" class="glass-card" style="display: none; margin-bottom: 24px; background: rgba(99, 102, 241, 0.04); border-color: rgba(99, 102, 241, 0.25);">
+          <div style="display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px;">
+            <div style="background: rgba(16, 185, 129, 0.08); padding: 8px; border-radius: 50%; color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2);">
+              <i class="fa-solid fa-check-circle" style="font-size: 18px;"></i>
+            </div>
+            <div>
+              <h3 style="font-size: 16px; margin-bottom: 4px;">Support Session Created!</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4;">
+                Share the invitation link with your client. The video call room will launch automatically when they connect.
+              </p>
+            </div>
+          </div>
+          
+          <div class="input-group" style="margin-bottom: 16px;">
+            <label>Customer Invite Link</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="invite-link-input" readonly style="flex: 1; border-radius: var(--radius-sm);" onclick="this.select()">
+              <button onclick="copyInviteLink()" class="btn btn-secondary" style="padding: 10px 18px; border-radius: var(--radius-sm);">
+                <i id="copy-icon" class="fa-regular fa-copy"></i> Copy
+              </button>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="start-call-btn" class="btn btn-primary" style="flex: 1; border-radius: var(--radius-sm); padding: 10px;">
+              <i class="fa-solid fa-spinner fa-spin"></i> Waiting for client...
+            </button>
+            <button onclick="cancelCreatedSession()" class="btn btn-secondary" style="border-radius: var(--radius-sm); padding: 10px 16px;">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Session History List -->
+        <h3 style="font-size: 16px; margin-bottom: 14px; font-family: 'Outfit', sans-serif;">Session History</h3>
+        <div class="history-container">
+          <table id="history-table">
+            <thead>
+              <tr>
+                <th>Session ID</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Duration</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="history-list-tbody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+          <div id="no-history-msg" style="text-align: center; padding: 48px; color: var(--text-muted); display: none;">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size: 28px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+            No support sessions recorded yet.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Session Inspector Details -->
+      <div class="glass-panel dashboard-panel">
+        <h2 style="font-size: 18px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border);"><i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent-color); margin-right: 8px;"></i>Session Inspector</h2>
+        
+        <!-- Placeholder View -->
+        <div id="inspector-placeholder" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: 30px;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, 0.01); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <i class="fa-solid fa-magnifying-glass" style="font-size: 20px;"></i>
+          </div>
+          <p style="font-size: 13.5px; max-width: 260px; line-height: 1.5;">Select a session from the history list to review connection logs, participant details, and call recordings.</p>
+        </div>
+
+        <!-- Inspector Content -->
+        <div id="session-inspector" style="display: none; overflow-y: auto; flex: 1; padding-right: 4px;">
+          <h3 id="inspect-session-id" style="font-size: 15px; word-break: break-all; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">Session ID: ...</h3>
+          <p id="inspect-session-date" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">Date: ...</p>
+          
+          <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+            <button onclick="downloadSessionData(selectedInspectId)" id="inspect-download-btn" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 12px; border-radius: var(--radius-sm);">
+              <i class="fa-solid fa-download"></i> Download Metadata
+            </button>
+            <button onclick="deleteSessionData(selectedInspectId)" id="inspect-delete-btn" class="btn btn-danger" style="flex: 1; padding: 10px; font-size: 12px; border-radius: var(--radius-sm);">
+              <i class="fa-solid fa-trash"></i> Delete Session
+            </button>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <h4 style="font-size: 12.5px; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;"><i class="fa-solid fa-users" style="margin-right: 6px;"></i>Participants</h4>
+            <div id="inspect-participants-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h4 style="font-size: 12.5px; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;"><i class="fa-solid fa-file-video" style="margin-right: 6px;"></i>Call Recording</h4>
+            <div id="inspect-recording-container"></div>
+          </div>
+
+          <div>
+            <h4 style="font-size: 12.5px; margin-bottom: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;"><i class="fa-solid fa-comments" style="margin-right: 6px;"></i>Chat & Shared Files</h4>
+            <div id="inspect-chat-list" style="background: rgba(0,0,0,0.25); border-radius: var(--radius-md); border: 1px solid var(--border); padding: 14px; max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-family: 'Inter', sans-serif;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. ACTIVE CALL ROOM -->
+    <div id="active-call-room" class="room-layout" style="display: none;">
+      <!-- Left side: Media section -->
+      <div class="media-section">
+        <!-- Call recording status indicator banner -->
+        <div id="recording-banner" class="recording-banner">
+          <div class="recording-dot"></div>
+          <span id="recording-banner-text">RECORDING (00:00)</span>
+        </div>
+
+        <div class="video-grid">
+          <!-- Local Video Feed -->
+          <div id="local-video-card" class="video-container active-call">
+            <video id="local-video" autoplay playsinline muted></video>
+            <div class="video-label">
+              <i class="fa-solid fa-user-tie"></i> You (Agent)
+            </div>
+            <div class="video-telemetry">
+              <span><i class="fa-solid fa-link" style="color: var(--success);"></i> Live Relay: TURN</span>
+              <span><i class="fa-solid fa-microchip"></i> VP8 / Opus @ 720p</span>
+            </div>
+            <div id="local-video-placeholder" class="video-placeholder">
+              <div class="video-placeholder-icon"><i class="fa-solid fa-video-slash"></i></div>
+              <span style="font-size: 12px;">Camera Inactive</span>
+            </div>
+          </div>
+          
+          <!-- Remote Video Feed -->
+          <div id="remote-video-card" class="video-container">
+            <video id="remote-video" autoplay playsinline></video>
+            <div class="video-label" id="remote-video-label">
+              <i class="fa-solid fa-user"></i> Customer (Offline)
+            </div>
+            <div class="video-telemetry" id="remote-video-telemetry" style="display: none;">
+              <span><i class="fa-solid fa-link" style="color: var(--success);"></i> Live Relay: TURN</span>
+              <span><i class="fa-solid fa-clock"></i> Latency: 32ms</span>
+            </div>
+            <div id="remote-video-placeholder" class="video-placeholder">
+              <div class="video-placeholder-icon"><i class="fa-solid fa-circle-notch fa-spin" style="color: var(--accent-color);"></i></div>
+              <span id="remote-status-text" style="font-size: 12px;">Waiting for customer to join...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Apple-style Control Dock -->
+        <div class="control-bar glass-panel">
+          <button onclick="toggleAudio()" id="btn-audio" class="control-btn active" title="Mute/Unmute Mic">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button onclick="toggleVideo()" id="btn-video" class="control-btn active" title="Turn Video On/Off">
+            <i class="fa-solid fa-video"></i>
+          </button>
+          <button onclick="toggleScreenShare()" id="btn-screenshare" class="control-btn" title="Present Screen">
+            <i class="fa-solid fa-display"></i>
+          </button>
+          <button onclick="toggleRecording()" id="btn-record" class="control-btn" title="Start/Stop Recording" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.2);">
+            <i class="fa-solid fa-circle"></i>
+          </button>
+          <button onclick="toggleChat()" id="btn-chat" class="control-btn active" title="Toggle Chat">
+            <i class="fa-solid fa-comments"></i>
+          </button>
+          <button onclick="endSession()" class="control-btn btn-hangup" title="End Call">
+            <i class="fa-solid fa-phone-slash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right side: Chat & File share -->
+      <div class="chat-section glass-panel">
+        <div class="chat-header">
+          <i class="fa-solid fa-comments" style="color: var(--accent-color); font-size: 18px;"></i>
+          <h3 style="font-size: 15px;">In-Call Support Chat</h3>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+          <!-- Chat messages rendered dynamically -->
+        </div>
+        
+        <!-- Recording Status Card inside Chat (Agent-only) -->
+        <div id="recording-status-card" class="recording-card" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11.5px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-tape" style="margin-right: 6px;"></i> Session Recording</span>
+            <span id="recording-card-status" class="status-badge status-processing">Processing</span>
+          </div>
+          <div id="recording-download-box" style="display: none; align-items: center; justify-content: space-between; font-size: 11px; margin-top: 4px;">
+            <span style="color: var(--text-secondary);">Recording ready.</span>
+            <a id="recording-download-link" href="#" download class="btn btn-primary" style="padding: 5px 10px; font-size: 11px; border-radius: var(--radius-sm);">
+              <i class="fa-solid fa-download"></i> Download
+            </a>
+          </div>
+        </div>
+        
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendChatMessage()">
+          <input type="file" id="file-input" style="display: none;" onchange="handleFileShare(event)">
+          <button onclick="document.getElementById('file-input').click()" class="file-upload-btn" title="Share File">
+            <i class="fa-solid fa-paperclip"></i>
+          </button>
+          <button onclick="sendChatMessage()" class="btn btn-primary" style="padding: 0; width: 38px; height: 38px; border-radius: var(--radius-sm); flex-shrink: 0;">
+            <i class="fa-solid fa-paper-plane" style="font-size: 13px;"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Hidden canvas for client-side stream recording -->
+  <canvas id="recording-canvas" style="display: none;"></canvas>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

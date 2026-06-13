@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AtomQuest Support - Customer Portal</title>
+  <meta name="description" content="Secure, real-time video support session for customers.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- Connection Drop Warning Banner -->
+  <div id="notification-banner" class="notification-banner">
+    <i class="fa-solid fa-triangle-exclamation"></i> Connection lost. Reconnecting to support session...
+  </div>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-dot" style="background: var(--customer-gradient); box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);"></div>
+      <div class="logo-text" style="background: var(--customer-gradient); -webkit-background-clip: text;">ATOMQUEST</div>
+      <span style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 800; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); letter-spacing: 0.05em;">CUSTOMER PORTAL</span>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- 1. JOIN SCREEN / PRE-CALL LOBBY -->
+    <div id="join-screen" class="role-grid">
+      <div class="role-panel glass-panel" style="max-width: 480px; width: 100%; margin: 40px auto; padding: 40px; position: relative; text-align: center;">
+        <!-- Glowing accent top border -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--customer-gradient);"></div>
+        
+        <h2 style="font-size: 24px; margin-bottom: 12px;">Join Support Call</h2>
+        <p id="join-prompt" style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin-bottom: 24px;">
+          Verifying your support invite token...
+        </p>
+        
+        <div id="join-error" style="color: var(--error); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15); padding: 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: none; margin-bottom: 24px; text-align: center; line-height: 1.4;">
+          Invalid invite link or support session has expired.
+        </div>
+
+        <div id="join-preview-box" style="display: none;">
+          <!-- Camera Preview Panel -->
+          <div style="background: #04060f; border-radius: var(--radius-md); width: 100%; aspect-ratio: 4/3; overflow: hidden; margin-bottom: 24px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.6);">
+            <video id="preview-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+            <div id="preview-placeholder" class="video-placeholder" style="position: absolute;">
+              <div class="video-placeholder-icon"><i class="fa-solid fa-video-slash"></i></div>
+              <span style="font-size: 12px; color: var(--text-secondary);">Camera Blocked / Inactive</span>
+            </div>
+          </div>
+          
+          <!-- Quick Device Testing Controls -->
+          <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 28px;">
+            <button onclick="togglePreviewAudio()" id="btn-preview-audio" class="btn btn-secondary" style="border-radius: 50%; width: 46px; height: 46px; padding: 0; font-size: 16px; border-color: rgba(255,255,255,0.08);">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <button onclick="togglePreviewVideo()" id="btn-preview-video" class="btn btn-secondary" style="border-radius: 50%; width: 46px; height: 46px; padding: 0; font-size: 16px; border-color: rgba(255,255,255,0.08);">
+              <i class="fa-solid fa-video"></i>
+            </button>
+          </div>
+          
+          <button id="btn-join-call" onclick="joinCallRoom()" class="btn btn-primary" style="width: 100%; padding: 14px; border-radius: var(--radius-sm); font-size: 15px; background: var(--customer-gradient); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);">
+            <i class="fa-solid fa-phone" style="margin-right: 6px;"></i> Connect with Support Agent
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ACTIVE CALL ROOM -->
+    <div id="active-call-room" class="room-layout" style="display: none;">
+      <!-- Left side: Media section -->
+      <div class="media-section">
+        <!-- Call recording status indicator banner (read-only for customer) -->
+        <div id="recording-banner" class="recording-banner">
+          <div class="recording-dot"></div>
+          <span id="recording-banner-text">RECORDING IN PROGRESS</span>
+        </div>
+
+        <div class="video-grid">
+          <!-- Remote Video (Agent feed) -->
+          <div id="remote-video-card" class="video-container">
+            <video id="remote-video" autoplay playsinline></video>
+            <div class="video-label" id="remote-video-label">
+              <i class="fa-solid fa-user-tie"></i> Agent (Offline)
+            </div>
+            <div class="video-telemetry" id="remote-video-telemetry" style="display: none;">
+              <span><i class="fa-solid fa-link" style="color: var(--success);"></i> Live Relay: TURN</span>
+              <span><i class="fa-solid fa-shield-halved"></i> Secure TLS Stream</span>
+            </div>
+            <div id="remote-video-placeholder" class="video-placeholder">
+              <div class="video-placeholder-icon"><i class="fa-solid fa-circle-notch fa-spin" style="color: #06b6d4;"></i></div>
+              <span id="remote-status-text" style="font-size: 12px;">Connecting to support agent...</span>
+            </div>
+          </div>
+          
+          <!-- Local Video (Customer feed) -->
+          <div id="local-video-card" class="video-container active-call">
+            <video id="local-video" autoplay playsinline muted></video>
+            <div class="video-label">
+              <i class="fa-solid fa-user"></i> You (Customer)
+            </div>
+            <div class="video-telemetry">
+              <span><i class="fa-solid fa-link" style="color: var(--success);"></i> Live Relay: TURN</span>
+              <span><i class="fa-solid fa-microchip"></i> VP8 / Opus</span>
+            </div>
+            <div id="local-video-placeholder" class="video-placeholder">
+              <div class="video-placeholder-icon"><i class="fa-solid fa-video-slash"></i></div>
+              <span style="font-size: 12px;">Camera Inactive</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Apple-style Control Dock -->
+        <div class="control-bar glass-panel">
+          <button onclick="toggleAudio()" id="btn-audio" class="control-btn active" title="Mute/Unmute Mic">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button onclick="toggleVideo()" id="btn-video" class="control-btn active" title="Turn Video On/Off">
+            <i class="fa-solid fa-video"></i>
+          </button>
+          <button onclick="toggleScreenShare()" id="btn-screenshare" class="control-btn" title="Present Screen">
+            <i class="fa-solid fa-display"></i>
+          </button>
+          <button onclick="toggleChat()" id="btn-chat" class="control-btn active" title="Toggle Chat">
+            <i class="fa-solid fa-comments"></i>
+          </button>
+          <button onclick="endSession()" class="control-btn btn-hangup" title="End Support Call">
+            <i class="fa-solid fa-phone-slash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right side: Chat & File share -->
+      <div class="chat-section glass-panel">
+        <div class="chat-header">
+          <i class="fa-solid fa-comments" style="color: #06b6d4; font-size: 18px;"></i>
+          <h3 style="font-size: 15px;">In-Call Support Chat</h3>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+          <!-- Chat messages rendered dynamically -->
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendChatMessage()">
+          <input type="file" id="file-input" style="display: none;" onchange="handleFileShare(event)">
+          <button onclick="document.getElementById('file-input').click()" class="file-upload-btn" title="Share File">
+            <i class="fa-solid fa-paperclip"></i>
+          </button>
+          <button onclick="sendChatMessage()" class="btn btn-primary" style="padding: 0; width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--customer-gradient); flex-shrink: 0;">
+            <i class="fa-solid fa-paper-plane" style="font-size: 13px;"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
